@@ -18,6 +18,32 @@
 import echarts from 'echarts'
 import 'echarts/map/js/china.js'
 import jsonp from 'jsonp'
+import * as R from 'ramda'
+import dataGeo from '../../static/dataGeo'
+
+// var data1 = [
+//     {name:"北京",value:199},
+//     {name:"天津",value:42},
+//     {name:"上海",value:102},
+//     {name:"重庆",value:81},
+//     {name:"安徽",value:47},
+//     {name:"福建",value:67}
+//     ]
+
+// var convertData = function(data1) {
+//     var res = [];
+//     for (var i = 0; i < data1.length; i++) {
+//         var geoCoord = dataGeo[i].value;// 地区经纬度
+//         if (geoCoord) {
+//             res.push({
+//                 name: data1[i].name,
+//                 value: geoCoord.concat(data1[i].value),
+//             });
+//         }
+//     }
+//     return res;
+// };
+
 
 export default {
   name: 'HelloWorld',
@@ -32,12 +58,13 @@ export default {
       flagCur: false,
       time: new Date(),
       timer: null, //定时器
+      arr: [],
       option : {
         tooltip: {
             triggerOn: "click",
-            // formatter: function(e, t, n) {
-            //     return .5 == e.value ? e.name + "：有疑似病例" : e.seriesName + "<br />" + e.name + "：" + e.value
-            // }
+            formatter: function(e) {
+                return .5 == e.value ? e.name + "：有疑似病例" : e.seriesName + "<br />" + e.name + "：" + e.value
+            }
         },
         visualMap: {
             min: 0,
@@ -45,6 +72,7 @@ export default {
             left: 26,
             bottom: 40,
             showLabel: !0,
+            seriesIndex: [1],
             text: ["高", "低"],
             pieces: [{
                 gte: 10000,
@@ -78,6 +106,7 @@ export default {
             show: !0
         },
         geo: {
+          show: true,
             map: "china",
             roam: !1,
             scaleLimit: {
@@ -88,9 +117,12 @@ export default {
             top: 120,
             label: {
                 normal: {
-                    show: !0,
+                    show: true,//显示地区名称
                     fontSize: "14",
                     color: "rgba(0,0,0,0.7)"
+                },
+                emphasis:{
+                  show: true//高亮显示地区名称
                 }
             },
             itemStyle: {
@@ -108,18 +140,76 @@ export default {
             }
         },
         series: [{
+            name: '散点',
+            type: 'scatter',
+            coordinateSystem: 'geo',
+            data: [],
+            symbolSize: 15,
+            // symbolOffset:[0,'50%'],
+            label: {
+                normal: {
+                    formatter: '{b}',
+                    position: 'right',
+                    show: false
+                },
+                emphasis: {
+                    show: true
+                }
+            },
+            itemStyle: {
+                color: '#fff'
+            }
+        },{
             name: "确诊病例",
             type: "map",
+            map: "china",
             geoIndex: 0,
+            label:{
+              offset:[30,40]
+            },
             data: []
-        }]
+        },
+        {
+            name: '点',
+            type: 'scatter',
+            coordinateSystem: 'geo',
+            zlevel: 6,
+        },
+        {
+            name: '危险地区',
+            type: 'effectScatter',
+            coordinateSystem: 'geo',
+            data: [],
+            symbolSize: 15,
+            // symbolOffset:[0,'50%'],
+            showEffectOn: 'render',
+            rippleEffect: {
+                brushType: 'stroke'
+            },
+            hoverAnimation: true,
+            label: {
+                normal: {
+                    formatter: '{b}',
+                    position: 'left',
+                    show: true
+                }
+            },
+            itemStyle: {
+                normal:{
+                  color: 'yellow',
+                  shadowBlur: 10,
+                  shadowColor: 'yellow'
+                }
+            },
+            zlevel: 1
+        },]
       }
     }
   },
   mounted () {
-    this.getData()
     this.myChart = echarts.init(this.$refs.mapbox);
-    this.timer = setInterval(() => {
+    this.getData();
+    this.timer = setInterval(() => {//定时刷新
        setTimeout(this.getData, 0)
     }, 1000*60*60)
   },
@@ -128,35 +218,63 @@ export default {
       jsonp('https://voice.baidu.com/newpneumonia/get?target=trend&isCaseIn=0&stage=publish&callback=jsonp_1596355876712_14463', {}, (err, data) => {
         if (!err) {
         //   var Y = this.time.getFullYear();
-          var M = this.time.getMonth() + 1;
-          var D = this.time.getDate() - 1;
-          var md = M + "." + D;  //与数据格式一致的当前日期
-          let arr = [],
-          finalData;
+          var M = R.inc(this.time.getMonth());
+          var D = R.dec(this.time.getDate());
+          var md = R.add(M, ".", D);  //与数据格式一致的当前日期
+          // let arr = [];
+            let  finalData;
+            this.arr = [];
           for (var item of data.data) {
             var arr_date = item.trend.updateDate;
-            var index = arr_date.indexOf(md)!=-1?arr_date.indexOf(md):arr_date.length-1;//当前日期的索引
+            var returnIndex = R.indexOf(md)(arr_date);
+            var index = R.equals(returnIndex, -1)?R.dec(arr_date.length):returnIndex;//当前日期的索引
             if(this.flagCon){
                 finalData = item.trend.list[0];
-                console.log(finalData)
+                // console.log(finalData)
             }else if(this.flagSus) {
                 finalData = item.trend.list[2];
-                console.log(finalData)
+                // console.log(finalData)
             }else if(this.flagCur) {
                 finalData = item.trend.list[3];
-                console.log(finalData)
+                // console.log(finalData)
             }
-            arr.push({
+            this.arr.push({
               name: item.name,
-              value: finalData.data[index]//当前日期对应的数据
+              value: R.nth(index, finalData.data)//当前日期对应的数据
+              // value: finalData.data[index]
             });
           }
-          this.option.series[0].data = arr;
+          // console.log(this.arr)
+          // this.option.series[0].data = this.arr;
+          
+          this.option.series[0].data = this.getWarningData(this.arr);
+          this.option.series[1].data = this.arr;
+          this.option.series[3].data = this.getWarningData(this.arr);
           this.myChart.setOption(this.option);
           // echarts初始化的前提是dom渲染完成
+          
+          // console.log(this.arr)
+          // console.log(this.flagCon)
+
         }
       })
     },
+    getWarningData (data) {
+      console.log(this.arr)
+      var res = [];
+      for (var i = 0; i < data.length; i++) {
+          var geoCoord = R.nth(i, dataGeo).value;// 地区经纬度
+          if (R.gt(data[i].value, 1000)) {//超过1000人，设置警告
+              res.push({
+                  name: R.nth(i, data).name,
+                  // name: data[i].name,
+                  value: R.concat(geoCoord, [data[i].value]),
+              });
+          }
+      }
+      return res;
+    },
+    
     confirmed() {
         this.flagCon = true;
         this.flagSus = false;

@@ -20,29 +20,11 @@ import 'echarts/map/js/china.js'
 import jsonp from 'jsonp'
 import * as R from 'ramda'
 import dataGeo from '../../static/dataGeo'
+import '../../static/dark'
+import '../../static/macarons'
+import '../../static/vintage'
 
-// var data1 = [
-//     {name:"北京",value:199},
-//     {name:"天津",value:42},
-//     {name:"上海",value:102},
-//     {name:"重庆",value:81},
-//     {name:"安徽",value:47},
-//     {name:"福建",value:67}
-//     ]
 
-// var convertData = function(data1) {
-//     var res = [];
-//     for (var i = 0; i < data1.length; i++) {
-//         var geoCoord = dataGeo[i].value;// 地区经纬度
-//         if (geoCoord) {
-//             res.push({
-//                 name: data1[i].name,
-//                 value: geoCoord.concat(data1[i].value),
-//             });
-//         }
-//     }
-//     return res;
-// };
 
 
 export default {
@@ -62,9 +44,7 @@ export default {
       option : {
         tooltip: {
             triggerOn: "click",
-            formatter: function(e) {
-                return .5 == e.value ? e.name + "：有疑似病例" : e.seriesName + "<br />" + e.name + "：" + e.value
-            }
+            formatter: "{b}:{c}"
         },
         visualMap: {
             min: 0,
@@ -106,7 +86,7 @@ export default {
             show: !0
         },
         geo: {
-          show: true,
+            show: true,
             map: "china",
             roam: !1,
             scaleLimit: {
@@ -119,7 +99,8 @@ export default {
                 normal: {
                     show: true,//显示地区名称
                     fontSize: "14",
-                    color: "rgba(0,0,0,0.7)"
+                    color: "rgba(0,0,0,0.7)",
+                    // formatter: '{b}\n{c}'
                 },
                 emphasis:{
                   show: true//高亮显示地区名称
@@ -164,9 +145,6 @@ export default {
             type: "map",
             map: "china",
             geoIndex: 0,
-            label:{
-              offset:[30,40]
-            },
             data: []
         },
         {
@@ -207,7 +185,7 @@ export default {
     }
   },
   mounted () {
-    this.myChart = echarts.init(this.$refs.mapbox);
+    this.myChart = echarts.init(this.$refs.mapbox, 'macarons');
     this.getData();
     this.timer = setInterval(() => {//定时刷新
        setTimeout(this.getData, 0)
@@ -227,7 +205,7 @@ export default {
           for (var item of data.data) {
             var arr_date = item.trend.updateDate;
             var returnIndex = R.indexOf(md)(arr_date);
-            var index = R.equals(returnIndex, -1)?R.dec(arr_date.length):returnIndex;//当前日期的索引
+            var index = R.equals(returnIndex, -1)?R.dec(R.length(arr_date)):returnIndex;//当前日期的索引
             if(this.flagCon){
                 finalData = item.trend.list[0];
                 // console.log(finalData)
@@ -260,7 +238,7 @@ export default {
       })
     },
     getWarningData (data) {
-      console.log(this.arr)
+      // console.log(this.arr)
       var res = [];
       for (var i = 0; i < data.length; i++) {
           var geoCoord = R.nth(i, dataGeo).value;// 地区经纬度

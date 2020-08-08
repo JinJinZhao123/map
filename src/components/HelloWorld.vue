@@ -1,6 +1,14 @@
 <template> 
 <div class="map">
   <header>
+    <el-select class="selectTheme" v-model="value" placeholder="请选择"  @change="selectTheme">
+        <el-option
+          v-for="item in selectOptions"
+          :key="item.value"
+          :label="item.label"
+          :value="item.value">
+        </el-option>
+    </el-select>
     <h1>疫情地图展示</h1>
   </header>
   <section class="map_content">
@@ -20,9 +28,12 @@ import 'echarts/map/js/china.js'
 import jsonp from 'jsonp'
 import * as R from 'ramda'
 import dataGeo from '../../static/dataGeo'
+// import ElementUI from 'element-ui';
+// import 'element-ui/lib/theme-chalk/index.css';
 import '../../static/dark'
 import '../../static/macarons'
 import '../../static/vintage'
+
 
 
 
@@ -41,6 +52,15 @@ export default {
       time: new Date(),
       timer: null, //定时器
       arr: [],
+      // myChart: {},
+      selectOptions: [{
+          value: 'dark',
+          label: '深色主题'
+        }, {
+          value: 'white',
+          label: '浅色主题'
+        }],
+      value: '',
       option : {
         tooltip: {
             triggerOn: "click",
@@ -169,14 +189,17 @@ export default {
                 normal: {
                     formatter: '{b}',
                     position: 'left',
-                    show: true
+                    show: true,
+                    
                 }
             },
             itemStyle: {
                 normal:{
                   color: 'yellow',
                   shadowBlur: 10,
-                  shadowColor: 'yellow'
+                  shadowColor: 'yellow',
+                  formatter:'{b}:{@[2]}',
+                  show:false
                 }
             },
             zlevel: 1
@@ -184,8 +207,43 @@ export default {
       }
     }
   },
+  // created () {
+  //   this.option.visualMap.pieces = [{
+  //               gte: 10000,
+  //               label: "> 10000",
+  //               color: "#052750"
+  //           }, {
+  //               gte: 1000,
+  //               lte: 9999,
+  //               label: "1000 - 9999",
+  //               color: "#194780"
+  //           },{
+  //               gte: 100,
+  //               lte: 999,
+  //               label: "100 - 999",
+  //               color: "#3063a2"
+  //           }, {
+  //               gte: 10,
+  //               lte: 99,
+  //               label: "10 - 99",
+  //               color: "#497ebf"
+  //           }, {
+  //               gte: 1,
+  //               lte: 9,
+  //               label: "1 - 9",
+  //               color: "#6b9ede"
+  //           }, {
+  //               value: 0,
+  //               color: "#b6c9e0"
+  //           }];
+  //   this.option.visualMap.textStyle = {
+  //           color: '#fff'
+  //       }
+  // },
   mounted () {
-    this.myChart = echarts.init(this.$refs.mapbox, 'macarons');
+    // this.myChart = echarts.init(this.$refs.mapbox, 'macarons');
+    this.myChart = echarts.init(this.$refs.mapbox);
+    console.log(this.myChart)
     this.getData();
     this.timer = setInterval(() => {//定时刷新
        setTimeout(this.getData, 0)
@@ -270,6 +328,81 @@ export default {
         this.flagSus = false;
         this.flagCur = true;
         this.getData();
+    },
+    selectTheme (value) {
+      if(value == "dark") {
+        echarts.dispose(this.myChart)//先销毁实例
+        this.myChart = echarts.init(this.$refs.mapbox, 'dark');
+        console.log(this.myChart)
+        this.option.visualMap.pieces = [{
+                gte: 10000,
+                label: "> 10000",
+                color: "#052750"
+            }, {
+                gte: 1000,
+                lte: 9999,
+                label: "1000 - 9999",
+                color: "#194780"
+            },{
+                gte: 100,
+                lte: 999,
+                label: "100 - 999",
+                color: "#3063a2"
+            }, {
+                gte: 10,
+                lte: 99,
+                label: "10 - 99",
+                color: "#497ebf"
+            }, {
+                gte: 1,
+                lte: 9,
+                label: "1 - 9",
+                color: "#6b9ede"
+            }, {
+                value: 0,
+                color: "#b6c9e0"
+            }];
+        this.option.visualMap.textStyle = {
+            color: '#fff'
+        }
+        this.myChart.setOption(this.option,true);
+      }else if (value == "white") {
+        echarts.dispose(this.myChart)//先销毁实例
+        this.myChart = echarts.init(this.$refs.mapbox, 'macarons');
+        // console.log(this.myChart)
+        this.option.visualMap.pieces = [{
+                gte: 10000,
+                label: "> 10000",
+                color: "#b80909"
+            }, {
+                gte: 1000,
+                lte: 9999,
+                label: "1000 - 9999",
+                color: "#e64546"
+            },{
+                gte: 100,
+                lte: 999,
+                label: "100 - 999",
+                color: "#f57567"
+            }, {
+                gte: 10,
+                lte: 99,
+                label: "10 - 99",
+                color: "#ff9985"
+            }, {
+                gte: 1,
+                lte: 9,
+                label: "1 - 9",
+                color: "#ffe5db"
+            }, {
+                value: 0,
+                color: "#ffffff"
+            }];
+        this.option.visualMap.textStyle = {
+            color: '#000'
+        }
+        this.myChart.setOption(this.option,true);
+      }
     }
   },
     beforeDestroy(){
@@ -331,5 +464,14 @@ header h1{
   background-color: #fff;
   font-weight: bold;
   border: 2px solid #ddd;
+}
+
+/* .map header{
+  position: relative;
+} */
+.selectTheme{
+  width: 110px;
+  position: absolute;
+  border-radius: 25px;
 }
 </style>
